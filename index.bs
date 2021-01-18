@@ -2842,8 +2842,6 @@ Note: The {{AttestationConveyancePreference}} enumeration is deliberately not re
 The {{PublicKeyCredentialRequestOptions}} dictionary supplies {{CredentialsContainer/get()}} with the data it needs to generate
 an assertion. Its {{PublicKeyCredentialRequestOptions/challenge}} member MUST be present, while its other members are OPTIONAL.
 
-{{ConditionalPublicKeyCredentialRequestOptions}} is the analogous dictionary for [=Conditional UI Flow=] requests.
-
 <xmp class="idl">
     dictionary PublicKeyCredentialRequestOptions {
         required BufferSource                challenge;
@@ -2852,9 +2850,6 @@ an assertion. Its {{PublicKeyCredentialRequestOptions/challenge}} member MUST be
         sequence<PublicKeyCredentialDescriptor> allowCredentials = [];
         DOMString                            userVerification = "preferred";
         AuthenticationExtensionsClientInputs extensions;
-    };
-
-    dictionary ConditionalPublicKeyCredentialRequestOptions : PublicKeyCredentialRequestOptions {
     };
 </xmp>
 
