@@ -1424,6 +1424,20 @@ that are returned to the caller when a new credential is created, or a new asser
 implementation of {{PublicKeyCredential/[[Create]](origin, options, sameOriginWithAncestors)}}, {{PublicKeyCredential/[[DiscoverFromExternalSource]](origin, options, sameOriginWithAncestors)}}, and
 {{Credential/[[Store]](credential, sameOriginWithAncestors)}}.
 
+### <dnf interface>ConditionalPublicKeyCredential</dfn> Interface ### {#iface=cpkcredential}
+
+{{ConditionalPublicKeyCredential}} inherits from {{PublicKeyCredential}} and is identical except for a different {{Credential/[[type]]}} in order to support the [=Conditional UI Flow=].
+
+<xmp class="idl">
+    [SecureContext, Exposed=Window]
+    interface ConditionalPublicKeyCredential : PublicKeyCredential {
+    };
+</xmp>
+<dl dfn-type="attribute" dfn-for="PublicKeyCredential">
+    :   {{Credential/[[type]]}}
+    ::  The {{ConditionalPublicKeyCredential}} [=interface object=]'s {{Credential/[[type]]}} [=internal slot=]'s value is the string
+        "`conditionalPublicKey`".
+</dl>
 
 ### `CredentialCreationOptions` Dictionary Extension ### {#sctn-credentialcreationoptions-extension}
 
@@ -1443,7 +1457,8 @@ To support obtaining assertions via {{CredentialsContainer/get()|navigator.crede
 
 <xmp class="idl">
     partial dictionary CredentialRequestOptions {
-        PublicKeyCredentialRequestOptions      publicKey;
+        PublicKeyCredentialRequestOptions            publicKey;
+        ConditionalPublicKeyCredentialRequestOptions conditionalPublicKey;
     };
 </xmp>
 
@@ -1938,7 +1953,7 @@ This [=internal method=] accepts three arguments:
 
     :   <dfn>options</dfn>
     ::  This argument is a {{CredentialRequestOptions}} object whose
-        <code>|options|.{{CredentialRequestOptions/publicKey}}</code> member contains a {{PublicKeyCredentialRequestOptions}}
+        <code>|options|.{{CredentialRequestOptions/publicKey}}</code> or <code>|options|.{{CredentialRequestOptions/conditionalPublicKey}}</code> member contains a {{PublicKeyCredentialRequestOptions}}
         object specifying the desired attributes of the [=public key credential=] to discover.
 
     :   <dfn>sameOriginWithAncestors</dfn>
@@ -1959,9 +1974,16 @@ by the buffer source=] and use that copy for relevant portions of the algorithm.
 
 When this method is invoked, the user agent MUST execute the following algorithm:
 
-1. Assert: <code>|options|.{{CredentialRequestOptions/publicKey}}</code> is present.
+1. Assert: <code>|options|.{{CredentialRequestOptions/publicKey}}</code> or <code>|options|.{{CredentialRequestOptions/conditionalPublicKey}}</code> are present.
 
-1. Let |options| be the value of <code>|options|.{{CredentialRequestOptions/publicKey}}</code>.
+1. If <code>|options|.{{CredentialRequestOptions/publicKey}}</code> and <code>|options|.{{CredentialRequestOptions/conditionalPublicKey}}</code> are present, return
+    a {{DOMException}} whose name is "{{NotSupportedError}}", and terminate this algorithm.
+
+1. If <code>|options|.{{CredentialRequestOptions/publicKey}}</code> is present, let |options| be the value of <code>|options|.{{CredentialRequestOptions/publicKey}}</code>.
+    Let |conditionalFlow| be [FALSE].
+
+1. If <code>|options|.{{CredentialRequestOptions/conditionalPublicKey}}</code> is present, let |options| be the value of <code>|options|.{{CredentialRequestOptions/conditionalPublicKey}}</code>.
+    Let |conditionalFlow| be [TRUE].
 
 1. If the {{PublicKeyCredentialRequestOptions/timeout}} member of |options| is present, check if its value lies
     within a reasonable range as defined by the [=client=] and if not, correct it to the closest value lying within that range.
@@ -2081,7 +2103,7 @@ When this method is invoked, the user agent MUST execute the following algorithm
             and [=set/remove=] |authenticator| from |issuedRequests|. Then
             return a {{DOMException}} whose name is "{{AbortError}}" and terminate this algorithm.
 
-        :   If |issuedRequests| is empty, <code>|options|.{{PublicKeyCredentialRequestOptions/allowCredentials}}</code> is not empty, and no |authenticator| will become available for any [=public key credentials=] therein,
+        :   If |conditionalFlow| is [FALSE], |issuedRequests| is empty, <code>|options|.{{PublicKeyCredentialRequestOptions/allowCredentials}}</code> is not empty, and no |authenticator| will become available for any [=public key credentials=] therein,
         ::  Indicate to the user that no eligible credential could be found. When the user acknowledges the dialog, return a {{DOMException}} whose name is "{{NotAllowedError}}".
 
             Note: One way a [=client platform=] can determine that no |authenticator| will become available is by examining the <code>{{transports}}</code> members of the present <code>{{PublicKeyCredentialDescriptor}}</code> [=list/items=] of <code>|options|.{{PublicKeyCredentialRequestOptions/allowCredentials}}</code>, if any. For example, if all <code>{{PublicKeyCredentialDescriptor}}</code> [=list/items=] list only <code>{{AuthenticatorTransport/internal}}</code>, but all [=platform authenticator|platform=] |authenticator|s have been tried, then there is no possibility of satisfying the request. Alternatively, all <code>{{PublicKeyCredentialDescriptor}}</code> [=list/items=] may list <code>{{transports}}</code> that the [=client platform=] does not support.
@@ -2268,7 +2290,10 @@ When this method is invoked, the user agent MUST execute the following algorithm
     [[#sctn-assertion-privacy]] for details.
 
 During the above process, the user agent SHOULD show some UI to the user to guide them in the process of selecting and
-authorizing an authenticator with which to complete the operation.
+authorizing an authenticator with which to complete the operation. [=[RPS]=] can provide a hint that a prominent UI should
+not be displayed if no |authenticator| will become available for any [=public key credentials=] by setting
+<code>|options|.{{CredentialRequestOptions/conditionalPublicKey}}</code> to the desired {{PublicKeyCredentialRequestOptions}}.
+This is known as a <dfn>Conditional UI Flow</dfn>.
 </div>
 
 
@@ -2817,6 +2842,8 @@ Note: The {{AttestationConveyancePreference}} enumeration is deliberately not re
 The {{PublicKeyCredentialRequestOptions}} dictionary supplies {{CredentialsContainer/get()}} with the data it needs to generate
 an assertion. Its {{PublicKeyCredentialRequestOptions/challenge}} member MUST be present, while its other members are OPTIONAL.
 
+{{ConditionalPublicKeyCredentialRequestOptions}} is the analogous dictionary for [=Conditional UI Flow=] requests.
+
 <xmp class="idl">
     dictionary PublicKeyCredentialRequestOptions {
         required BufferSource                challenge;
@@ -2825,6 +2852,9 @@ an assertion. Its {{PublicKeyCredentialRequestOptions/challenge}} member MUST be
         sequence<PublicKeyCredentialDescriptor> allowCredentials = [];
         DOMString                            userVerification = "preferred";
         AuthenticationExtensionsClientInputs extensions;
+    };
+
+    dictionary ConditionalPublicKeyCredentialRequestOptions : PublicKeyCredentialRequestOptions {
     };
 </xmp>
 
