@@ -1979,11 +1979,15 @@ When this method is invoked, the user agent MUST execute the following algorithm
 1. If <code>|options|.{{CredentialRequestOptions/publicKey}}</code> and <code>|options|.{{CredentialRequestOptions/conditionalPublicKey}}</code> are present, return
     a {{DOMException}} whose name is "{{NotSupportedError}}", and terminate this algorithm.
 
-1. If <code>|options|.{{CredentialRequestOptions/publicKey}}</code> is present, let |options| be the value of <code>|options|.{{CredentialRequestOptions/publicKey}}</code>.
-    Let |conditionalFlow| be [FALSE].
+1. If <code>|options|.{{CredentialRequestOptions/publicKey}}</code> is present:
+    1. Let |options| be the value of <code>|options|.{{CredentialRequestOptions/publicKey}}</code>.
+    1. Let |conditionalFlow| be [FALSE].
 
-1. If <code>|options|.{{CredentialRequestOptions/conditionalPublicKey}}</code> is present, let |options| be the value of <code>|options|.{{CredentialRequestOptions/conditionalPublicKey}}</code>.
-    Let |conditionalFlow| be [TRUE].
+1. If <code>|options|.{{CredentialRequestOptions/conditionalPublicKey}}</code> is present:
+    1. If <code>|options|.{{PublicKeyCredentialRequestOptions/allowCredentials}}</code> is not empty, return
+         a {{DOMException}} whose name is "{{NotSupportedError}}", and terminate this algorithm.
+    1. Let |options| be the value of <code>|options|.{{CredentialRequestOptions/conditionalPublicKey}}</code>.
+    1. Let |conditionalFlow| be [TRUE].
 
 1. If the {{PublicKeyCredentialRequestOptions/timeout}} member of |options| is present, check if its value lies
     within a reasonable range as defined by the [=client=] and if not, correct it to the closest value lying within that range.
