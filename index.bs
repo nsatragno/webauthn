@@ -1457,8 +1457,8 @@ To support obtaining assertions via {{CredentialsContainer/get()|navigator.crede
 
 <xmp class="idl">
     partial dictionary CredentialRequestOptions {
-        PublicKeyCredentialRequestOptions            publicKey;
-        ConditionalPublicKeyCredentialRequestOptions conditionalPublicKey;
+        PublicKeyCredentialRequestOptions publicKey;
+        PublicKeyCredentialRequestOptions conditionalPublicKey;
     };
 </xmp>
 
