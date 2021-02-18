@@ -1428,20 +1428,6 @@ that are returned to the caller when a new credential is created, or a new asser
 implementation of {{PublicKeyCredential/[[Create]](origin, options, sameOriginWithAncestors)}}, {{PublicKeyCredential/[[DiscoverFromExternalSource]](origin, options, sameOriginWithAncestors)}}, and
 {{Credential/[[Store]](credential, sameOriginWithAncestors)}}.
 
-### <dnf interface>ConditionalPublicKeyCredential</dfn> Interface ### {#iface=cpkcredential}
-
-{{ConditionalPublicKeyCredential}} inherits from {{PublicKeyCredential}} and is identical except for a different {{Credential/[[type]]}} in order to support the [=Conditional UI Flow=].
-
-<xmp class="idl">
-    [SecureContext, Exposed=Window]
-    interface ConditionalPublicKeyCredential : PublicKeyCredential {
-    };
-</xmp>
-<dl dfn-type="attribute" dfn-for="PublicKeyCredential">
-    :   {{Credential/[[type]]}}
-    ::  The {{ConditionalPublicKeyCredential}} [=interface object=]'s {{Credential/[[type]]}} [=internal slot=]'s value is the string
-        "`conditionalPublicKey`".
-</dl>
 
 ### `CredentialCreationOptions` Dictionary Extension ### {#sctn-credentialcreationoptions-extension}
 
@@ -1462,7 +1448,6 @@ To support obtaining assertions via {{CredentialsContainer/get()|navigator.crede
 <xmp class="idl">
     partial dictionary CredentialRequestOptions {
         PublicKeyCredentialRequestOptions publicKey;
-        PublicKeyCredentialRequestOptions conditionalPublicKey;
     };
 </xmp>
 
@@ -1926,14 +1911,16 @@ to indicate what [=credential sources=] are acceptable to it. The [=client platf
 matching the specified criteria, and guides the user to pick one that the script will be allowed to use. The user may choose to
 decline the entire interaction even if a [=credential source=] is present, for example to maintain privacy. If the user picks a
 [=credential source=], the user agent then uses
-[[#sctn-op-get-assertion]] to sign a [=[RP]=]-provided challenge and other collected data into an assertion, which is used as a
+[[#sctn-op-get-assertion]] to sign a [=[RP]=]-provided challenge and other collected data into an [=assertion=], which is used as a
 [=credential=].
 
-The {{CredentialsContainer/get()}} implementation [[!CREDENTIAL-MANAGEMENT-1]] calls
+The {{CredentialsContainer/get()|navigator.credentials.get()}} implementation [[!CREDENTIAL-MANAGEMENT-1]] calls
 <code>PublicKeyCredential.{{PublicKeyCredential/[[CollectFromCredentialStore]]()}}</code> to collect any [=credentials=] that
 should be available without [=user mediation=] (roughly, this specification's [=authorization gesture=]), and if it does not find
-exactly one of those, it then calls <code>PublicKeyCredential.{{PublicKeyCredential/[[DiscoverFromExternalSource]]()}}</code> to have
-the user select a [=credential source=].
+exactly one of those, it then calls <code>PublicKeyCredential.{{PublicKeyCredential/[[DiscoverFromExternalSource]]()}}</code> to have the user select a [=credential source=].
+
+In any case, the user agent SHOULD show some UI to the user to guide them in selecting and
+authorizing an authenticator with which to complete the operation. [=[RPS]=] can provide a hint that a prominent, modal UI <em>should not</em> be used for this process by setting <code>|options|.{{CredentialRequestOptions/mediation}}</code> to "conditional". This is known as a <dfn>Conditional UI Flow</dfn>. [=[RP]=] script SHOULD first check that <code>navigator.credentials.{{CredentialsContainer/conditionalMediationSupported}}</code> is [TRUE] in order to avoid the possiblity of causing a user-visible error to be returned if the user agent does not support [=conditional UI flow=].
 
 Since this specification requires an [=authorization gesture=] to create any [=credentials=], the <code>PublicKeyCredential.<dfn
 for="PublicKeyCredential" method>\[[CollectFromCredentialStore]](origin, options, sameOriginWithAncestors)</dfn></code> [=internal method=] inherits the default behavior of
@@ -1957,7 +1944,7 @@ This [=internal method=] accepts three arguments:
 
     :   <dfn>options</dfn>
     ::  This argument is a {{CredentialRequestOptions}} object whose
-        <code>|options|.{{CredentialRequestOptions/publicKey}}</code> or <code>|options|.{{CredentialRequestOptions/conditionalPublicKey}}</code> member contains a {{PublicKeyCredentialRequestOptions}}
+        <code>|options|.{{CredentialRequestOptions/publicKey}}</code> member contains a {{PublicKeyCredentialRequestOptions}}
         object specifying the desired attributes of the [=public key credential=] to discover.
 
     :   <dfn>sameOriginWithAncestors</dfn>
@@ -1978,20 +1965,19 @@ by the buffer source=] and use that copy for relevant portions of the algorithm.
 
 When this method is invoked, the user agent MUST execute the following algorithm:
 
-1. Assert: <code>|options|.{{CredentialRequestOptions/publicKey}}</code> or <code>|options|.{{CredentialRequestOptions/conditionalPublicKey}}</code> are present.
+1. Assert: <code>|options|.{{CredentialRequestOptions/publicKey}}</code> is present.
 
-1. If <code>|options|.{{CredentialRequestOptions/publicKey}}</code> and <code>|options|.{{CredentialRequestOptions/conditionalPublicKey}}</code> are present, return
-    a {{DOMException}} whose name is "{{NotSupportedError}}", and terminate this algorithm.
+1. Let |options| be the value of <code>|options|.{{CredentialRequestOptions/publicKey}}</code>.
 
-1. If <code>|options|.{{CredentialRequestOptions/publicKey}}</code> is present:
-    1. Let |options| be the value of <code>|options|.{{CredentialRequestOptions/publicKey}}</code>.
-    1. Let |conditionalFlow| be [FALSE].
+1. If <code>|options|.{{CredentialRequestOptions/mediation}}</code>
+    <dl class="switch">
+        :   is present with the value "conditional"
+        ::  If <code>|options|.{{PublicKeyCredentialRequestOptions/allowCredentials}}</code> is empty then let |conditionalFlow| be [TRUE], otherwise return a {{DOMException}} whose name is "{{NotAllowedError}}", and terminate this algorithm.
 
-1. If <code>|options|.{{CredentialRequestOptions/conditionalPublicKey}}</code> is present:
-    1. If <code>|options|.{{PublicKeyCredentialRequestOptions/allowCredentials}}</code> is not empty, return
-         a {{DOMException}} whose name is "{{NotSupportedError}}", and terminate this algorithm.
-    1. Let |options| be the value of <code>|options|.{{CredentialRequestOptions/conditionalPublicKey}}</code>.
-    1. Let |conditionalFlow| be [TRUE].
+        :   is present with a value other than "conditional" or is not present
+        ::  let |conditionalFlow| be [FALSE].
+    </dl>
+
 
 1. If the {{PublicKeyCredentialRequestOptions/timeout}} member of |options| is present, check if its value lies
     within a reasonable range as defined by the [=client=] and if not, correct it to the closest value lying within that range.
@@ -2297,11 +2283,6 @@ When this method is invoked, the user agent MUST execute the following algorithm
     user without [=user consent|consent=], this step MUST NOT be executed before |lifetimeTimer| has expired. See
     [[#sctn-assertion-privacy]] for details.
 
-During the above process, the user agent SHOULD show some UI to the user to guide them in the process of selecting and
-authorizing an authenticator with which to complete the operation. [=[RPS]=] can provide a hint that a prominent UI should
-not be displayed if no |authenticator| will become available for any [=public key credentials=] by setting
-<code>|options|.{{CredentialRequestOptions/conditionalPublicKey}}</code> to the desired {{PublicKeyCredentialRequestOptions}}.
-This is known as a <dfn>Conditional UI Flow</dfn>.
 </div>
 
 
