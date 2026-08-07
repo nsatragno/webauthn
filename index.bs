@@ -8652,6 +8652,7 @@ The <dfn>Credential Parameters</dfn> is a JSON [=Object=] passed to the [=remote
                 <th>Key</th>
                 <th>Description</th>
                 <th>Value Type</th>
+                <th>Default</th>
             </tr>
         </thead>
         <tbody>
@@ -8659,6 +8660,7 @@ The <dfn>Credential Parameters</dfn> is a JSON [=Object=] passed to the [=remote
                 <td>|credentialId|</td>
                 <td>The [=public key credential source/id|Credential ID=] encoded using [=Base64url Encoding=].</td>
                 <td>string</td>
+                <td>None</td>
             </tr>
             <tr>
                 <td>|isResidentCredential|</td>
@@ -8667,11 +8669,13 @@ The <dfn>Credential Parameters</dfn> is a JSON [=Object=] passed to the [=remote
                     is created instead.
                 </td>
                 <td>boolean</td>
+                <td>None</td>
             </tr>
             <tr>
                 <td>|rpId|</td>
                 <td>The [=public key credential source/rpId|Relying Party ID=] the credential is scoped to.</td>
                 <td>string</td>
+                <td>None</td>
             </tr>
             <tr>
                 <td>|privateKey|</td>
@@ -8680,89 +8684,92 @@ The <dfn>Credential Parameters</dfn> is a JSON [=Object=] passed to the [=remote
                     per [[RFC5958]], encoded using [=Base64url Encoding=].
                 </td>
                 <td>string</td>
+                <td>None</td>
             </tr>
             <tr>
                 <td>|userHandle|</td>
                 <td>
                     The [=public key credential source/userHandle=] associated to the credential encoded using
-                    [=Base64url Encoding=]. This property may not be defined.
+                    [=Base64url Encoding=]. Required if |isResidentCredential| is [TRUE].
                 </td>
                 <td>string</td>
+                <td>`null`</td>
             </tr>
             <tr>
                 <td>|signCount|</td>
                 <td>The initial value for a [=signature counter=] associated to the [=public key credential source=].</td>
-                <td>number</td>
+                <td>number, may be `null`</td>
+                <td>0</td>
             </tr>
             <tr>
                 <td>|largeBlob|</td>
                 <td>
                     The [=large, per-credential blob=] associated to the [=public key credential source=], encoded using [=Base64url Encoding=].
-                    This property may not be defined.
                 </td>
                 <td>string</td>
+                <td>`null`</td>
             </tr>
             <tr>
                 <td>|backupEligibility|</td>
                 <td>
-                    The simulated [=backup eligibility=] for the [=public key credential source=]. If unset, the value will default to the
-                    [=virtual authenticator=]'s |defaultBackupEligibility| property.
+                    The simulated [=backup eligibility=] for the [=public key credential source=].
                     The simulated [=backup eligibility=] MUST be reflected by the [=BE=] [=authenticator data=] [=flag=] when performing
                     an [=authenticatorGetAssertion=] operation with this [=public key credential source=].
                 </td>
                 <td>boolean</td>
+                <td>Authenticator's |defaultBackupEligibility|</td>
             </tr>
             <tr>
                 <td>|backupState|</td>
                 <td>
-                    The simulated [=backup state=] for the [=public key credential source=]. If unset, the value will default to the
-                    [=virtual authenticator=]'s |defaultBackupState| property.
+                    The simulated [=backup state=] for the [=public key credential source=].
                     The simulated [=backup state=] MUST be reflected by the [=BS=] [=authenticator data=] [=flag=] when performing
                     an [=authenticatorGetAssertion=] operation with this [=public key credential source=].
                 </td>
                 <td>boolean</td>
+                <td>Authenticator's |defaultBackupState|</td>
             </tr>
             <tr>
                 <td>|userName|</td>
                 <td>
                     The {{PublicKeyCredentialUserEntity|user}}'s {{PublicKeyCredentialEntity/name}} associated to the credential.
-                    If unset, the value will default to the empty string.
                 </td>
                 <td>string</td>
+                <td>Empty string</td>
             </tr>
             <tr>
                 <td>|userDisplayName|</td>
                 <td>
                     The {{PublicKeyCredentialUserEntity|user}}'s {{PublicKeyCredentialUserEntity/displayName}} associated to the credential.
-                    If unset, the value will default to the empty string.
                 </td>
                 <td>string</td>
+                <td>Empty string</td>
             </tr>
             <tr>
                 <td>|cmtgKeys|</td>
                 <td>
                     A list of [=Credential Manager Trust Group Private Keys=],
                     each formatted as an asymmetric key package per [[RFC5958]] and encoded using [=Base64url Encoding=].
-                    This property may not be defined.
                 </td>
                 <td>array of strings</td>
+                <td>Empty list</td>
             </tr>
             <tr>
                 <td>|activeCmtgKeyIndex|</td>
                 <td>
                     The 0-based index of the active key in |cmtgKeys| that the authenticator will use.
-                    If this property is not defined, it is treated as 0 if |cmtgKeys| is not empty.
                 </td>
                 <td>integer</td>
+                <td>0</td>
             </tr>
             <tr>
                 <td>|generateCmtgKeyOnNextOperation|</td>
                 <td>
                     If set to [TRUE], the authenticator will generate a new CMTG key on the next operation that requests it,
                     even if one is already active. This value is reset to [FALSE] after the key is generated.
-                    If this property is not defined, it is treated as [FALSE].
                 </td>
                 <td>boolean</td>
+                <td>[FALSE]</td>
             </tr>
         </tbody>
     </table>
@@ -8772,36 +8779,45 @@ The [=remote end steps=] are:
 
  1. If |parameters| is not a JSON [=Object=], return a [=WebDriver error=] with [=WebDriver error code=]
      [=invalid argument=].
-
-     Note: |parameters| is a [=Credential Parameters=] object.
- 1. Let |credentialId| be the result of decoding [=Base64url Encoding=] on the |parameters|' |credentialId| property.
- 1. If |credentialId| is failure, return a [=WebDriver error=] with [=WebDriver error code=] [=invalid argument=].
- 1. Let |isResidentCredential| be the |parameters|' |isResidentCredential| property.
- 1. If |isResidentCredential| is not defined, return a [=WebDriver error=] with [=WebDriver error code=] [=invalid argument=].
- 1. Let |rpId| be the |parameters|' |rpId| property.
- 1. If |rpId| is not a valid [=RP ID=], return a [=WebDriver error=] with [=WebDriver error code=] [=invalid argument=].
- 1. Let |privateKey| be the result of decoding [=Base64url Encoding=] on the |parameters|' |privateKey| property.
- 1. If |privateKey| is failure, return a [=WebDriver error=] with [=WebDriver error code=] [=invalid argument=].
- 1. If |privateKey| is not a validly-encoded asymmetric key package containing a single ECDSA private key on the P-256
-     curve per [[RFC5958]], return a [=WebDriver error=] with [=WebDriver error code=] [=invalid argument=].
- 1. If the |parameters|' |userHandle| property is defined:
-     1. Let |userHandle| be the result of decoding [=Base64url Encoding=] on the |parameters|' |userHandle| property.
-     1. If |userHandle| is failure, return a [=WebDriver error=] with [=WebDriver error code=] [=invalid argument=].
- 1. Otherwise:
-    1. If |isResidentCredential| is [TRUE], return a [=WebDriver error=] with [=WebDriver error code=] [=invalid argument=].
-    1. Let |userHandle| be `null`.
  1. If |authenticatorId| does not match any [=Virtual Authenticator=] stored in the [=Virtual Authenticator
      Database=], return a [=WebDriver error=] with [=WebDriver error code=] [=invalid argument=].
  1. Let |authenticator| be the [=Virtual Authenticator=] matched by |authenticatorId|.
- 1. If |isResidentCredential| is [TRUE] and the |authenticator|'s |hasResidentKey| property is [FALSE], return a
+ 1. For each enumerable [=own property=] in |parameters|:
+     1. Let |key| be the name of the property.
+     1. Let |value| be the result of [=getting a property=] named |key| from |parameters|.
+     1. If there is no matching `key` for |key| in [=Credential Parameters=], return a [=WebDriver error=] with
+         [=WebDriver error code=] [=invalid argument=].
+     1. If |value| is not of the type specified in the "Value Type" column for |key| in [=Credential Parameters=],
+         return a [=WebDriver error=] with [=WebDriver error code=] [=invalid argument=].
+ 1. For each property in [=Credential Parameters=]:
+     1. If |parameters|[|key|] is defined, continue.
+     1. If the default defined for |key| in [=Credential Parameters=] is "None", return a [=WebDriver error=] with
+         [=WebDriver error code=] [=invalid argument=].
+     1. Set |parameters|[|key|] to the default value defined for |key| in [=Credential Parameters=].
+ 1. Let |credentialId| be the result of decoding [=Base64url Encoding=] on |parameters|[|credentialId|].
+ 1. If |credentialId| is failure, return a [=WebDriver error=] with [=WebDriver error code=] [=invalid argument=].
+ 1. Let |isResidentCredential| be |parameters|[|isResidentCredential|].
+ 1. If |isResidentCredential| is [TRUE] and |authenticator|'s |hasResidentKey| property is [FALSE], return a
      [=WebDriver error=] with [=WebDriver error code=] [=invalid argument=].
- 1. If the |authenticator| supports the [=largeBlob=] extension and the |parameters|' |largeBlob| feature is defined:
-     1. Let |largeBlob| be the result of decoding [=Base64url Encoding=] on the |parameters|' |largeBlob| property.
-     1. If |largeBlob| is failure, return a [=WebDriver error=] with [=WebDriver error code=] [=invalid argument=].
+ 1. Let |rpId| be |parameters|[|rpId|].
+ 1. If |rpId| is not a valid [=RP ID=], return a [=WebDriver error=] with [=WebDriver error code=] [=invalid argument=].
+ 1. Let |privateKey| be the result of decoding [=Base64url Encoding=] on |parameters|[|privateKey|].
+ 1. If |privateKey| is failure, return a [=WebDriver error=] with [=WebDriver error code=] [=invalid argument=].
+ 1. If |privateKey| is not a validly-encoded asymmetric key package containing a single ECDSA private key on the P-256
+     curve per [[RFC5958]], return a [=WebDriver error=] with [=WebDriver error code=] [=invalid argument=].
+ 1. If |parameters|[|userHandle|] is not `null`:
+     1. Let |userHandle| be the result of decoding [=Base64url Encoding=] on |parameters|[|userHandle|].
+     1. If |userHandle| is failure, return a [=WebDriver error=] with [=WebDriver error code=] [=invalid argument=].
  1. Otherwise:
-     1. Let |largeBlob| be `null`.
- 1. If the |authenticator| supports the [=cmtgKey=] extension:
+     1. If |isResidentCredential| is [TRUE], return a [=WebDriver error=] with [=WebDriver error code=] [=invalid argument=].
+     1. Let |userHandle| be `null`.
+ 1. Let |largeBlob| be `null`.
+ 1. If |parameters|[|largeBlob|] is not `null` and |authenticator| supports the [=largeBlob=] extension:
+     1. Set |largeBlob| to the result of decoding [=Base64url Encoding=] on |parameters|[|largeBlob|].
+     1. If |largeBlob| is failure, return a [=WebDriver error=] with [=WebDriver error code=] [=invalid argument=].
+ 1. If |authenticator| supports the [=cmtgKey=] extension:
      1. Let |cmtgKeys| be an empty list.
+<<<<<<< HEAD
      1. If the |parameters|' |cmtgKeys| property is defined:
          1. If |parameters|' |cmtgKeys| is not an array, return a [=WebDriver error=] with [=WebDriver error code=] [=invalid argument=].
          1. For each |keyStr| in |parameters|' |cmtgKeys|:
@@ -8830,6 +8846,18 @@ The [=remote end steps=] are:
  1. If |userName| is not defined, set |userName| to the empty string.
  1. Let |userDisplayName| be the |parameters|' |userDisplayName| property.
  1. If |userDisplayName| is not defined, set |userDisplayName| to the empty string.
+=======
+     1. For each |keyStr| in |parameters|[|cmtgKeys|]:
+         1. Let |key| be the result of decoding [=Base64url Encoding=] on |keyStr|.
+         1. If |key| is failure, return a [=WebDriver error=] with [=WebDriver error code=] [=invalid argument=].
+         1. If |key| is not a validly-encoded asymmetric key package containing a single private key
+             per [[RFC5958]] using the same public key algorithm as |privateKey|, return a
+             [=WebDriver error=] with [=WebDriver error code=] [=invalid argument=].
+         1. Append |key| to |cmtgKeys|.
+     1. Let |activeCmtgKeyIndex| be |parameters|[|activeCmtgKeyIndex|].
+     1. If |cmtgKeys| is not empty and (|activeCmtgKeyIndex| < 0 or |activeCmtgKeyIndex| >= |cmtgKeys|'s size), return a [=WebDriver error=] with [=WebDriver error code=] [=invalid argument=].
+     1. Let |generateCmtgKeyOnNextOperation| be |parameters|[|generateCmtgKeyOnNextOperation|].
+>>>>>>> 9b2e76eb (Better default handling for Add Credential command)
  1. Let |credential| be a new [=Client-side discoverable Public Key Credential Source=] if |isResidentCredential| is [TRUE]
      or a [=Server-side Public Key Credential Source=] otherwise whose items are:
     : [=public key credential source/type=]
@@ -8843,11 +8871,10 @@ The [=remote end steps=] are:
     : [=public key credential source/userHandle=]
     :: |userHandle|
     : [=public key credential source/otherUI=]
-    :: Construct from |userName| and |userDisplayName|.
- 1. Set the |credential|'s [=backup eligibility=] [=credential property=] to |backupEligibility|.
- 1. Set the |credential|'s [=backup state=] [=credential property=] to |backupState|.
- 1. Associate a [=signature counter=] |counter| to the |credential| with a starting value equal to the |parameters|'
-     |signCount| or `0` if |signCount| is `null`.
+    :: Construct from |parameters|[|userName|] and |parameters|[|userDisplayName|].
+ 1. Set the |credential|'s [=backup eligibility=] [=credential property=] to |parameters|[|backupEligibility|].
+ 1. Set the |credential|'s [=backup state=] [=credential property=] to |parameters|[|backupState|].
+ 1. Associate a [=signature counter=] |counter| to the |credential| with a starting value equal to |parameters|[|signCount|] or `0` if |parameters|[|signCount|] is `null`.
  1. If |largeBlob| is not `null`, set the [=large, per-credential blob=] associated to the |credential| to |largeBlob|.
  1. Store the |credential| and |counter| in the database of the |authenticator|.
  1. If the |authenticator| supports the [=cmtgKey=] extension, store |cmtgKeys|, |activeCmtgKeyIndex|, and |generateCmtgKeyOnNextOperation| associated with the |credential| in the database of the |authenticator|.
